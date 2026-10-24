@@ -1,0 +1,216 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: #1f1f1f;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 1024px;
+  min-height: 768px;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: #2b2b33;
+  color: #fff;
+  flex: 0 0 auto;
+}
+
+.toolbar button {
+  background: #4c6ef5;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.toolbar button:hover {
+  background: #3b5bdb;
+}
+
+.toolbar__hint {
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+.board {
+  position: relative;
+  flex: 1 1 auto;
+  background: #eef0f3;
+  background-image: radial-gradient(circle, #d9dce2 1px, transparent 1px);
+  background-size: 24px 24px;
+  overflow: hidden;
+  touch-action: none;
+}
+
+.create-ghost {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  border: 2px dashed #4c6ef5;
+  background: rgba(76, 110, 245, 0.08);
+  pointer-events: none;
+}
+
+.sticky-note {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  border-radius: 4px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+  will-change: transform;
+}
+
+.sticky-note__handle {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  cursor: grab;
+  touch-action: none; /* prevents the browser from performing default actions, such as scrolling or panning*/
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.sticky-note__handle:active {
+  cursor: grabbing;
+}
+
+.sticky-note--yellow {
+  background: #fff6a3;
+}
+.sticky-note--pink {
+  background: #ffc9de;
+}
+.sticky-note--green {
+  background: #b9f6ca;
+}
+.sticky-note--blue {
+  background: #a9d6ff;
+}
+.sticky-note--orange {
+  background: #ffd3a3;
+}
+
+.sticky-note__colors {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.sticky-note__swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  padding: 0;
+}
+
+.sticky-note__swatch--yellow {
+  background: #fff6a3;
+}
+.sticky-note__swatch--pink {
+  background: #ffc9de;
+}
+.sticky-note__swatch--green {
+  background: #b9f6ca;
+}
+.sticky-note__swatch--blue {
+  background: #a9d6ff;
+}
+.sticky-note__swatch--orange {
+  background: #ffd3a3;
+}
+
+.sticky-note__text {
+  flex: 1 1 auto;
+  width: 100%;
+  resize: none;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+  padding: 6px 8px;
+}
+
+.sticky-note__resize-handle {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 14px;
+  height: 14px;
+  cursor: nwse-resize;
+  touch-action: none;
+  border-right: 3px solid rgba(0, 0, 0, 0.35);
+  border-bottom: 3px solid rgba(0, 0, 0, 0.35);
+}
+
+.trash-zone {
+  position: absolute;
+  right: 24px;
+  bottom: 24px;
+  width: 140px;
+  height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border: 2px dashed #868e96;
+  border-radius: 8px;
+  color: #495057;
+  font-size: 13px;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.undo-toast-stack {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 1000;
+}
+
+.undo-toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #2b2b33;
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 14px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+}
+
+.undo-toast button {
+  background: #4c6ef5;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
