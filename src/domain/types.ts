@@ -16,6 +16,7 @@ export interface Note {
   size: Size;
   text: string;
   color: NoteColor;
+  zIndex: number;
 }
 
 export const NOTE_COLORS: NoteColor[] = ["yellow", "pink", "green", "blue", "orange"];

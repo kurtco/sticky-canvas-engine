@@ -14,9 +14,10 @@ import { debounce } from "./debounce";
 // ]);
 
 // using mock fake api to save data here rivate db: Note[] = []
-const repository: NoteRepository = new CompositeAdapter(new MockRestApiAdapter(), [
-  new LocalStorageAdapter(),
-]);
+const repository: NoteRepository = new CompositeAdapter(
+  new MockRestApiAdapter(),
+  [new LocalStorageAdapter()],
+);
 interface DeletedNoteBuffer {
   note: Note;
   timeoutId: ReturnType<typeof setTimeout>;
@@ -24,7 +25,8 @@ interface DeletedNoteBuffer {
 
 interface NoteStoreState {
   notes: Record<string, Note>;
-  order: string[]; // render/stacking order, back to front
+  order: string[]; // render order (DOM); never reordered, so an active
+  nextZIndex: number; //  handle the stick note position to move it to front
   pendingDeletes: Record<string, DeletedNoteBuffer>;
   isLoaded: boolean;
   loadNotes: () => Promise<void>;
@@ -44,7 +46,9 @@ const persistNotes = debounce((notes: Note[]) => {
 
 function schedulePersist(get: () => NoteStoreState) {
   const { notes, order } = get();
-  persistNotes(order.map((id) => notes[id]).filter((n): n is Note => n !== undefined));
+  persistNotes(
+    order.map((id) => notes[id]).filter((n): n is Note => n !== undefined),
+  );
 }
 
 let noteIdCounter = 0;
@@ -56,31 +60,38 @@ function createNoteId(): string {
 export const useNoteStore = create<NoteStoreState>((set, get) => ({
   notes: {},
   order: [],
+  nextZIndex: 1,
   pendingDeletes: {},
   isLoaded: false,
 
   loadNotes: async () => {
     const notes = await repository.load();
+    const maxZIndex = notes.reduce((max, n) => Math.max(max, n.zIndex), 0);
     set({
       notes: Object.fromEntries(notes.map((n) => [n.id, n])),
       order: notes.map((n) => n.id),
+      nextZIndex: maxZIndex + 1,
       isLoaded: true,
     });
   },
 
   addNote: (position, size) => {
     const id = createNoteId();
-    const note: Note = {
-      id,
-      position,
-      size,
-      text: "",
-      color: "yellow",
-    };
-    set((state) => ({
-      notes: { ...state.notes, [id]: note },
-      order: [...state.order, id],
-    }));
+    set((state) => {
+      const note: Note = {
+        id,
+        position,
+        size,
+        text: "",
+        color: "yellow",
+        zIndex: state.nextZIndex,
+      };
+      return {
+        notes: { ...state.notes, [id]: note },
+        order: [...state.order, id],
+        nextZIndex: state.nextZIndex + 1,
+      };
+    });
     schedulePersist(get);
     return id;
   },
@@ -121,11 +132,16 @@ export const useNoteStore = create<NoteStoreState>((set, get) => ({
     schedulePersist(get);
   },
 
+  // moving the stick to front is visual only, via z-index. We never touch `order`  array (which
+  // controls DOM position)
   bringToFront: (id) => {
     set((state) => {
-      if (state.order[state.order.length - 1] === id) return state;
-      const order = [...state.order.filter((noteId) => noteId !== id), id];
-      return { order };
+      const note = state.notes[id];
+      if (!note || note.zIndex === state.nextZIndex - 1) return state; //the stick note is already out in front; don’t do anything.
+      return {
+        notes: { ...state.notes, [id]: { ...note, zIndex: state.nextZIndex } }, //Assigning the highest number
+        nextZIndex: state.nextZIndex + 1, // incrementing the counter for next time
+      };
     });
   },
 
@@ -162,8 +178,12 @@ export const useNoteStore = create<NoteStoreState>((set, get) => ({
     set((state) => {
       const { [id]: _removed, ...pendingDeletes } = state.pendingDeletes;
       return {
-        notes: { ...state.notes, [id]: buffered.note },
+        notes: {
+          ...state.notes,
+          [id]: { ...buffered.note, zIndex: state.nextZIndex },
+        },
         order: [...state.order, id],
+        nextZIndex: state.nextZIndex + 1,
         pendingDeletes,
       };
     });

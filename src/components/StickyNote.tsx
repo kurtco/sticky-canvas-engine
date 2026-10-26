@@ -50,6 +50,7 @@ function StickyNoteComponent({ note, boardRef, trashRef }: StickyNoteProps) {
         transform: `translate(${note.position.x}px, ${note.position.y}px)`,
         width: note.size.width,
         height: note.size.height,
+        zIndex: note.zIndex,
       }}
       onFocus={() => bringToFront(note.id)}
     >
