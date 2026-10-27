@@ -97,7 +97,7 @@ export function useDragNote({ id, size, boardRef, trashRef }: UseDragNoteOptions
       }
       dragRef.current = null;
     },
-    [computeClampedPosition, deleteNote, id, moveNote, trashRef],
+    [computeClampedPosition, deleteNote, id, moveNote, size.height, size.width, trashRef],
   );
 
   return { elRef, onPointerDown, onPointerMove, onPointerUp };

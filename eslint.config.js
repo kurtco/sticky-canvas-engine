@@ -18,6 +18,9 @@ export default tseslint.config(
     rules: {
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
+      // Allows the `const { [id]: _removed, ...rest } = obj` destructure-to-omit-key
+      // idiom used in the store to drop an entry from a Record immutably.
+      "@typescript-eslint/no-unused-vars": ["error", { varsIgnorePattern: "^_" }],
     },
   },
 );
