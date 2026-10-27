@@ -4,6 +4,8 @@ A single-page sticky notes application built with React 19, TypeScript, and
 Zustand. Notes can be created, moved, resized, recolored, edited, and deleted
 by dragging them onto a trash zone.
 
+**Live preview:** https://sticky-canvas-engine.vercel.app/
+
 ## Architecture
 
 The domain layer (`src/domain`) defines plain types and pure geometry
