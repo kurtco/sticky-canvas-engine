@@ -1,8 +1,9 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useNoteStore } from "./useNoteStore";
 
 beforeEach(() => {
-  useNoteStore.setState({ notes: {}, order: [], nextZIndex: 1, pendingDeletes: {}, isLoaded: false });
+  localStorage.clear();
+  useNoteStore.setState({ notes: {}, order: [], nextZIndex: 1, pendingDeletes: {} });
 });
 
 describe("bringToFront", () => {
@@ -36,5 +37,46 @@ describe("bringToFront", () => {
 
     const state = useNoteStore.getState();
     expect(state.notes[idB]?.zIndex).toBeGreaterThan(state.notes[idA]?.zIndex ?? 0);
+  });
+});
+
+describe("persistence (localStorage)", () => {
+  it("writes notes/order/nextZIndex to localStorage on every mutation", () => {
+    const id = useNoteStore.getState().addNote({ x: 0, y: 0 }, { width: 120, height: 100 });
+
+    const raw = localStorage.getItem("sticky-notes-storage");
+    expect(raw).not.toBeNull();
+    const parsed = JSON.parse(raw as string);
+    expect(parsed.state.notes[id]).toBeDefined();
+    expect(parsed.state.order).toEqual([id]);
+  });
+
+  it("never persists pendingDeletes (it holds a live timeoutId)", () => {
+    const id = useNoteStore.getState().addNote({ x: 0, y: 0 }, { width: 120, height: 100 });
+    useNoteStore.getState().deleteNote(id);
+
+    const raw = localStorage.getItem("sticky-notes-storage");
+    const parsed = JSON.parse(raw as string);
+    expect(parsed.state.pendingDeletes).toBeUndefined();
+  });
+
+  it("restores notes from localStorage on a fresh module load (simulates an F5 reload)", async () => {
+    localStorage.setItem(
+      "sticky-notes-storage",
+      JSON.stringify({
+        state: {
+          notes: { "note-1": { id: "note-1", position: { x: 5, y: 5 }, size: { width: 120, height: 100 }, text: "hi", color: "yellow", zIndex: 1 } },
+          order: ["note-1"],
+          nextZIndex: 2,
+        },
+        version: 0,
+      }),
+    );
+
+    vi.resetModules();
+    const { useNoteStore: rehydratedStore } = await import("./useNoteStore");
+
+    expect(rehydratedStore.getState().notes["note-1"]?.text).toBe("hi");
+    expect(rehydratedStore.getState().order).toEqual(["note-1"]);
   });
 });

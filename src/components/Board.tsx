@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { useNoteStore } from "../store/useNoteStore";
 import { useCreateNoteByDrag } from "../hooks/useCreateNoteByDrag";
 import { StickyNote } from "./StickyNote";
@@ -16,14 +16,8 @@ export function Board() {
 
   const order = useNoteStore((s) => s.order);
   const notes = useNoteStore((s) => s.notes);
-  const isLoaded = useNoteStore((s) => s.isLoaded);
-  const loadNotes = useNoteStore((s) => s.loadNotes);
 
   const create = useCreateNoteByDrag({ boardRef });
-
-  useEffect(() => {
-    void loadNotes();
-  }, [loadNotes]);
 
   return (
     <div className="app">
@@ -35,12 +29,11 @@ export function Board() {
         onPointerMove={create.onPointerMove}
         onPointerUp={create.onPointerUp}
       >
-        {isLoaded &&
-          order.map((id) => {
-            const note = notes[id];
-            if (!note) return null;
-            return <StickyNote key={id} note={note} boardRef={boardRef} trashRef={trashRef} />;
-          })}
+        {order.map((id) => {
+          const note = notes[id];
+          if (!note) return null;
+          return <StickyNote key={id} note={note} boardRef={boardRef} trashRef={trashRef} />;
+        })}
         <div ref={create.ghostRef} className="create-ghost" />
         <TrashZone trashRef={trashRef} />
       </div>
