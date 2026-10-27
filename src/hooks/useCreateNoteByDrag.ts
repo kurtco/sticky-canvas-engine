@@ -8,18 +8,14 @@ interface CreateDragState {
   boardRect: DOMRect;
 }
 
-// A minimum drag distance below this is treated as a stray click, not an
-// intent to draw a note.
+// e.g. a 3px wiggle while clicking the board is ignored, not drawn as a tiny note.
 const MIN_DRAG_DISTANCE = 10;
 
 interface UseCreateNoteByDragOptions {
   boardRef: React.RefObject<HTMLDivElement | null>;
 }
 
-// Single responsibility: drawing a brand-new note by dragging on empty
-// board space (click-drag from corner to corner), mirroring useDragNote's
-// shape — cache on pointerdown, mutate a ghost element on pointermove,
-// commit to the store only on pointerup.
+// e.g. drag a rectangle on empty canvas: a ghost div previews it live, the real note is only added on release.
 export function useCreateNoteByDrag({ boardRef }: UseCreateNoteByDragOptions) {
   const ghostRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<CreateDragState | null>(null);
@@ -27,8 +23,7 @@ export function useCreateNoteByDrag({ boardRef }: UseCreateNoteByDragOptions) {
 
   const onPointerDown = useCallback(
     (e: React.PointerEvent) => {
-      // Only start a creation drag when the background itself was pressed,
-      // not a note or any interactive element on top of it.
+      // e.g. pressing down on an existing note shouldn't also start drawing a new one underneath it.
       if (e.target !== e.currentTarget || !boardRef.current) return;
       e.currentTarget.setPointerCapture(e.pointerId);
       dragRef.current = {

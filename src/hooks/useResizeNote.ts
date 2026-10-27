@@ -20,28 +20,23 @@ interface UseResizeNoteOptions {
   boardRef: React.RefObject<HTMLDivElement | null>;
 }
 
-// Single responsibility: resizing a note from its bottom-right handle.
-// Unlike dragging, resizing must touch width/height (not transform) since
-// the note's content needs to reflow with its new box — that reflow stays
-// local to this one element, so the cost is acceptable.
+// e.g. growing the note needs its textarea to reflow too — that's why this mutates width/height, not transform.
 export function useResizeNote({ id, size, position, boardRef }: UseResizeNoteOptions) {
   const elRef = useRef<HTMLDivElement>(null);
   const resizeRef = useRef<ResizeState | null>(null);
   const resizeNote = useNoteStore((s) => s.resizeNote);
 
-  
-  // recives the current size and thje
+  // e.g. dragging past the board edge: still returns a size that fits, never bigger than maxWidth/maxHeight.
   const computeClampedSize = useCallback((resize: ResizeState, clientX: number, clientY: number): Size => {
     const width = clamp(resize.origWidth + (clientX - resize.startX), MIN_NOTE_SIZE.width, resize.maxWidth);
     const height = clamp(resize.origHeight + (clientY - resize.startY), MIN_NOTE_SIZE.height, resize.maxHeight);
     return { width, height };
   }, []);
 
-  // the users clicks on the stick
   const onPointerDown = useCallback(
     (e: React.PointerEvent) => {
       if (!boardRef.current) return;
-      e.stopPropagation(); 
+      e.stopPropagation(); // e.g. without this, dragging the resize handle would also start moving the note
       e.currentTarget.setPointerCapture(e.pointerId);
       const boardRect = boardRef.current.getBoundingClientRect();
       resizeRef.current = {
@@ -49,7 +44,7 @@ export function useResizeNote({ id, size, position, boardRef }: UseResizeNoteOpt
         startY: e.clientY,
         origWidth: size.width,
         origHeight: size.height,
-        /* They represent the exact position of your pointer (mouse) within the browser window at that precise moment */
+        // e.g. a note at x=700 on a 1000px board can only grow to width=300, not the full board width
         maxWidth: boardRect.width - position.x,
         maxHeight: boardRect.height - position.y,
       };
@@ -57,8 +52,6 @@ export function useResizeNote({ id, size, position, boardRef }: UseResizeNoteOpt
     [boardRef, position.x, position.y, size.height, size.width],
   );
 
-
-  // the user is working or resizing
   const onPointerMove = useCallback(
     (e: React.PointerEvent) => {
       const resize = resizeRef.current;
@@ -70,21 +63,18 @@ export function useResizeNote({ id, size, position, boardRef }: UseResizeNoteOpt
     },
     [computeClampedSize],
   );
- 
 
-  // the user stops working with the stick
   const onPointerUp = useCallback(
     (e: React.PointerEvent) => {
       const resize = resizeRef.current;
       if (!resize) return;
       e.stopPropagation();
       e.currentTarget.releasePointerCapture(e.pointerId);
-      resizeNote(id, computeClampedSize(resize, e.clientX, e.clientY)); // critical part: when the users stops resizing we calculate the final size
+      resizeNote(id, computeClampedSize(resize, e.clientX, e.clientY));
       resizeRef.current = null;
     },
     [computeClampedSize, id, resizeNote],
   );
-
 
   return { elRef, onPointerDown, onPointerMove, onPointerUp };
 }

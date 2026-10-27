@@ -1,7 +1,6 @@
 import { useNoteStore } from "../store/useNoteStore";
 
-// Renders one toast per note currently buffered after an optimistic delete,
-// each with its own 5s undo window (see store.deleteNote).
+// e.g. delete 3 notes fast: 3 stacked toasts, each with its own independent 5s countdown.
 export function UndoToast() {
   const pendingDeletes = useNoteStore((s) => s.pendingDeletes);
   const undoDelete = useNoteStore((s) => s.undoDelete);

@@ -9,8 +9,8 @@ interface DeletedNoteBuffer {
 
 interface NoteStoreState {
   notes: Record<string, Note>;
-  order: string[]; // render order (DOM); never reordered, so an active
-  nextZIndex: number; // handle the sticky note position to move it to front
+  order: string[]; // e.g. bringToFront never changes this — React never reorders a note's DOM node.
+  nextZIndex: number; // e.g. always the highest zIndex handed out + 1, so bringToFront never recomputes others.
   pendingDeletes: Record<string, DeletedNoteBuffer>;
   addNote: (position: Position, size: Size) => string;
   moveNote: (id: string, position: Position) => void;
@@ -88,9 +88,7 @@ export const useNoteStore = create<NoteStoreState>()(
         });
       },
 
-      // Stacking is visual only, via z-index. We never touch `order` (which
-      // controls DOM position) — if React moves the node mid-drag, the
-      // browser can drop pointer capture and the gesture breaks.
+      // e.g. clicking a note just bumps its z-index — `order` (and the DOM) never gets reshuffled.
       bringToFront: (id) => {
         set((state) => {
           const note = state.notes[id];
@@ -105,9 +103,7 @@ export const useNoteStore = create<NoteStoreState>()(
         });
       },
 
-      // Optimistic delete: the note disappears immediately but is kept in a
-      // buffer for a few seconds so the UI can offer an undo instead of a
-      // blocking confirm() dialog.
+      // e.g. drop a note on the trash: it vanishes instantly, but a 5s "Undo" toast can still bring it back.
       deleteNote: (id) => {
         const note = get().notes[id];
         if (!note) return;
@@ -152,8 +148,7 @@ export const useNoteStore = create<NoteStoreState>()(
     }),
     {
       name: "sticky-notes-storage",
-      // pendingDeletes holds a live timeoutId — it's transient UI state,
-      // not something that should survive a reload.
+      // e.g. without this, reloading mid-undo-countdown would show a toast whose timer no longer exists.
       partialize: (state) => ({
         notes: state.notes,
         order: state.order,

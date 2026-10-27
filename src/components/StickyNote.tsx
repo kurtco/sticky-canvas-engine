@@ -11,18 +11,14 @@ interface StickyNoteProps {
   trashRef: React.RefObject<HTMLDivElement | null>;
 }
 
-// Wrapped in memo, and subscribes to its own note by id — editing or
-// dragging one note only re-renders this component, never the board or
-// its siblings.
+// e.g. editing note A's text never re-renders note B: each instance reads only its own id from the store.
 function StickyNoteComponent({ id, boardRef, trashRef }: StickyNoteProps) {
   const note = useNoteStore((s) => s.notes[id]);
   const setNoteText = useNoteStore((s) => s.setNoteText);
   const setNoteColor = useNoteStore((s) => s.setNoteColor);
   const bringToFront = useNoteStore((s) => s.bringToFront);
 
-  // Local to this component while typing — the store (and every other
-  // subscriber) is only updated on blur, so a keystroke never triggers a
-  // Zustand update at all.
+  // e.g. typing "hello" fires 5 local re-renders, 0 Zustand updates — only clicking away commits it.
   const [text, setText] = useState(note?.text ?? "");
 
   const drag = useDragNote({ id, size: note?.size ?? { width: 0, height: 0 }, boardRef, trashRef });
@@ -42,8 +38,7 @@ function StickyNoteComponent({ id, boardRef, trashRef }: StickyNoteProps) {
 
   const onColorChange = useCallback((color: NoteColor) => setNoteColor(id, color), [id, setNoteColor]);
 
-  // Combine both refs (drag's root ref and resize's size-mutation target)
-  // onto the same DOM node.
+  // drag moves this div via transform, resize changes its width/height — both need the same DOM node.
   const setRefs = useCallback(
     (el: HTMLDivElement | null) => {
       drag.elRef.current = el;
@@ -66,8 +61,7 @@ function StickyNoteComponent({ id, boardRef, trashRef }: StickyNoteProps) {
       }}
       onFocus={() => bringToFront(id)}
     >
-      {/* "sticky-note__handle "Dedicated grab strip: the only region that starts a move-drag, so
-          it never competes with text editing or color swatches below it. */}
+      {/* e.g. without this strip, grabbing the textarea to drag the note would just place the cursor instead. */}
       <div
         className="sticky-note__handle"
         onPointerDown={drag.onPointerDown}

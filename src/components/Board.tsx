@@ -6,11 +6,7 @@ import { TrashZone } from "./TrashZone";
 import { Toolbar } from "./Toolbar";
 import { UndoToast } from "./UndoToast";
 
-// The board subscribes only to the `order` ID array (stable reference unless
-// a note is added, deleted, undone, or brought to front) — never to the
-// `notes` record itself. Each StickyNote reads its own note by id, so
-// editing or dragging one note re-renders only that note, never the board
-// or its siblings.
+// e.g. typing in one note's textarea never re-renders this list — Board only reacts to notes being added/removed/reordered.
 export function Board() {
   const boardRef = useRef<HTMLDivElement>(null);
   const trashRef = useRef<HTMLDivElement>(null);
