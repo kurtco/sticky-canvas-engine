@@ -1,36 +1,46 @@
-import { memo, useCallback } from "react";
-import type { Note, NoteColor } from "../domain/types";
+import { memo, useCallback, useState } from "react";
+import type { NoteColor } from "../domain/types";
 import { NOTE_COLORS } from "../domain/types";
 import { useDragNote } from "../hooks/useDragNote";
 import { useResizeNote } from "../hooks/useResizeNote";
 import { useNoteStore } from "../store/useNoteStore";
 
 interface StickyNoteProps {
-  note: Note;
+  id: string;
   boardRef: React.RefObject<HTMLDivElement | null>;
   trashRef: React.RefObject<HTMLDivElement | null>;
 }
 
-// Wrapped in memo so dragging/resizing/editing one note never re-renders
-// its siblings: the board only re-renders this component when the `note`
-// object for this specific id changes.
-function StickyNoteComponent({ note, boardRef, trashRef }: StickyNoteProps) {
+// Wrapped in memo, and subscribes to its own note by id — editing or
+// dragging one note only re-renders this component, never the board or
+// its siblings.
+function StickyNoteComponent({ id, boardRef, trashRef }: StickyNoteProps) {
+  const note = useNoteStore((s) => s.notes[id]);
   const setNoteText = useNoteStore((s) => s.setNoteText);
   const setNoteColor = useNoteStore((s) => s.setNoteColor);
   const bringToFront = useNoteStore((s) => s.bringToFront);
 
-  const drag = useDragNote({ id: note.id, size: note.size, boardRef, trashRef });
-  const resize = useResizeNote({ id: note.id, size: note.size, position: note.position, boardRef });
+  // Local to this component while typing — the store (and every other
+  // subscriber) is only updated on blur, so a keystroke never triggers a
+  // Zustand update at all.
+  const [text, setText] = useState(note?.text ?? "");
+
+  const drag = useDragNote({ id, size: note?.size ?? { width: 0, height: 0 }, boardRef, trashRef });
+  const resize = useResizeNote({
+    id,
+    size: note?.size ?? { width: 0, height: 0 },
+    position: note?.position ?? { x: 0, y: 0 },
+    boardRef,
+  });
 
   const onTextChange = useCallback(
-    (e: React.ChangeEvent<HTMLTextAreaElement>) => setNoteText(note.id, e.target.value),
-    [note.id, setNoteText],
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => setText(e.target.value),
+    [],
   );
 
-  const onColorChange = useCallback(
-    (color: NoteColor) => setNoteColor(note.id, color),
-    [note.id, setNoteColor],
-  );
+  const onTextBlur = useCallback(() => setNoteText(id, text), [id, setNoteText, text]);
+
+  const onColorChange = useCallback((color: NoteColor) => setNoteColor(id, color), [id, setNoteColor]);
 
   // Combine both refs (drag's root ref and resize's size-mutation target)
   // onto the same DOM node.
@@ -42,6 +52,8 @@ function StickyNoteComponent({ note, boardRef, trashRef }: StickyNoteProps) {
     [drag.elRef, resize.elRef],
   );
 
+  if (!note) return null; // deleted mid-render (e.g. dragged onto the trash)
+
   return (
     <div
       ref={setRefs}
@@ -52,7 +64,7 @@ function StickyNoteComponent({ note, boardRef, trashRef }: StickyNoteProps) {
         height: note.size.height,
         zIndex: note.zIndex,
       }}
-      onFocus={() => bringToFront(note.id)}
+      onFocus={() => bringToFront(id)}
     >
       {/* "sticky-note__handle "Dedicated grab strip: the only region that starts a move-drag, so
           it never competes with text editing or color swatches below it. */}
@@ -78,9 +90,10 @@ function StickyNoteComponent({ note, boardRef, trashRef }: StickyNoteProps) {
 
       <textarea
         className="sticky-note__text"
-        value={note.text}
+        value={text}
         placeholder="Type a note…"
         onChange={onTextChange}
+        onBlur={onTextBlur}
       />
 
       <div
