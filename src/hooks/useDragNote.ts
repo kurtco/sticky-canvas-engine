@@ -18,10 +18,7 @@ interface UseDragNoteOptions {
   trashRef: React.RefObject<HTMLDivElement | null>;
 }
 
-// Single responsibility: moving an existing note by dragging it.
-// Position is mutated straight on the DOM node during the gesture and only
-// committed to the Zustand store on pointerup, so dragging never re-renders
-// React at pointer-event frequency.
+// e.g. a 100-move-event drag only touches el.style.transform 100 times and the store once, on release.
 export function useDragNote({ id, size, boardRef, trashRef }: UseDragNoteOptions) {
   const elRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
@@ -48,8 +45,7 @@ export function useDragNote({ id, size, boardRef, trashRef }: UseDragNoteOptions
       e.currentTarget.setPointerCapture(e.pointerId);
       bringToFront(id);
 
-      // Cache both rects once up front; re-reading the DOM on every
-      // pointermove would force a synchronous layout (layout thrashing).
+      // e.g. without caching this, every pointermove would force a synchronous layout recalculation.
       const boardRect = boardRef.current.getBoundingClientRect();
       const noteRect = elRef.current.getBoundingClientRect();
       dragRef.current = {
@@ -70,8 +66,15 @@ export function useDragNote({ id, size, boardRef, trashRef }: UseDragNoteOptions
       if (!drag || !el) return;
       const { x, y } = computeClampedPosition(drag, e.clientX, e.clientY);
       el.style.transform = `translate(${x}px, ${y}px)`;
+
+      // e.g. dragging a big note over the trash: highlight it as soon as the bodies overlap, not just on drop.
+      if (trashRef.current) {
+        const noteRect = new DOMRect(drag.boardRect.left + x, drag.boardRect.top + y, size.width, size.height);
+        const isOverTrash = rectsOverlap(noteRect, trashRef.current.getBoundingClientRect());
+        trashRef.current.classList.toggle("trash-zone--active", isOverTrash);
+      }
     },
-    [computeClampedPosition],
+    [computeClampedPosition, size.height, size.width, trashRef],
   );
 
   const onPointerUp = useCallback(
@@ -79,6 +82,7 @@ export function useDragNote({ id, size, boardRef, trashRef }: UseDragNoteOptions
       const drag = dragRef.current;
       if (!drag) return;
       e.currentTarget.releasePointerCapture(e.pointerId);
+      trashRef.current?.classList.remove("trash-zone--active");
 
       const { x, y } = computeClampedPosition(drag, e.clientX, e.clientY);
       const noteRect = new DOMRect(

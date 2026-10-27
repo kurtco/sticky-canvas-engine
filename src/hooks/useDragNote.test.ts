@@ -93,4 +93,35 @@ describe("useDragNote", () => {
     expect(useNoteStore.getState().notes[id]).toBeUndefined();
     expect(useNoteStore.getState().pendingDeletes[id]).toBeDefined();
   });
+
+  it("highlights the trash zone only while the note's body overlaps it, and clears it on pointerup", () => {
+    const boardEl = document.createElement("div");
+    stubRect(boardEl, { left: 0, top: 0, width: 1000, height: 800 });
+    const noteEl = document.createElement("div");
+    stubRect(noteEl, { left: 0, top: 0, width: 100, height: 100 });
+    const trashEl = document.createElement("div");
+    stubRect(trashEl, { left: 500, top: 500, width: 100, height: 100 });
+
+    const id = useNoteStore.getState().addNote({ x: 0, y: 0 }, { width: 100, height: 100 });
+
+    const { result } = renderHook(() =>
+      useDragNote({
+        id,
+        size: { width: 100, height: 100 },
+        boardRef: { current: boardEl },
+        trashRef: { current: trashEl },
+      }),
+    );
+    result.current.elRef.current = noteEl;
+
+    act(() => result.current.onPointerDown(fakePointerEvent(10, 10)));
+    act(() => result.current.onPointerMove(fakePointerEvent(20, 20))); // far from trash
+    expect(trashEl.classList.contains("trash-zone--active")).toBe(false);
+
+    act(() => result.current.onPointerMove(fakePointerEvent(520, 520))); // now overlapping trash
+    expect(trashEl.classList.contains("trash-zone--active")).toBe(true);
+
+    act(() => result.current.onPointerUp(fakePointerEvent(20, 20))); // dropped elsewhere
+    expect(trashEl.classList.contains("trash-zone--active")).toBe(false);
+  });
 });

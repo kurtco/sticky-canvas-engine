@@ -182,6 +182,15 @@ body {
   color: #495057;
   font-size: 13px;
   background: rgba(255, 255, 255, 0.6);
+  transition: background-color 0.1s, border-color 0.1s, transform 0.1s;
+}
+
+.trash-zone--active {
+  border-color: #e03131;
+  border-style: solid;
+  color: #e03131;
+  background: rgba(255, 235, 235, 0.9);
+  transform: scale(1.05);
 }
 
 .undo-toast-stack {
