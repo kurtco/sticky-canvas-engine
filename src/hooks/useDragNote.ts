@@ -1,6 +1,6 @@
 import { useCallback, useRef } from "react";
 import type { Position, Size } from "../domain/types";
-import { clamp, isPointInRect } from "../domain/geometry";
+import { clamp, rectsOverlap } from "../domain/geometry";
 import { useNoteStore } from "../store/useNoteStore";
 
 interface DragState {
@@ -80,14 +80,20 @@ export function useDragNote({ id, size, boardRef, trashRef }: UseDragNoteOptions
       if (!drag) return;
       e.currentTarget.releasePointerCapture(e.pointerId);
 
+      const { x, y } = computeClampedPosition(drag, e.clientX, e.clientY);
+      const noteRect = new DOMRect(
+        drag.boardRect.left + x,
+        drag.boardRect.top + y,
+        size.width,
+        size.height,
+      );
       const droppedOnTrash =
-        trashRef.current !== null &&
-        isPointInRect({ x: e.clientX, y: e.clientY }, trashRef.current.getBoundingClientRect());
+        trashRef.current !== null && rectsOverlap(noteRect, trashRef.current.getBoundingClientRect());
 
       if (droppedOnTrash) {
         deleteNote(id);
       } else {
-        moveNote(id, computeClampedPosition(drag, e.clientX, e.clientY));
+        moveNote(id, { x, y });
       }
       dragRef.current = null;
     },
